@@ -16,14 +16,6 @@ app.use(express.urlencoded({ extended: false })); // for content-type: applicati
 //static file serving so you don't have to keep making routes for css, js etc
 app.use(express.static(publicDir));
 
-app.get("/", (req,res) => {
-  res.sendFile(path.join(publicDir, "index.html"));
-})
-
-// same as above just different route
-app.get("/index", (req,res) => {
-  res.send("hello world!");
-})
 
 app.get("/notes", (req,res) => {
   res.sendFile(path.join(publicDir, "notes.html"));
@@ -36,7 +28,7 @@ app.get("/api/notes", (req, res) => {
   if (data) {
     json = JSON.parse(data);
   } else {
-    json = { msg: "No objects Found"};
+    json = { msg: "No notes Found"};
   }
   
   res.json(json);
@@ -47,16 +39,22 @@ app.get("/api/notes", (req, res) => {
 app.post("/api/notes", (req, res) => {
   let data = req.body; //uses express.json middleware and parses json to javascript object for you
   let fileData = fs.readFileSync(path.join(databaseDir, "db.json"), "utf8");
-  let dbData = JSON.parse(fileData);
+  let dbData = JSON.parse(fileData); // array of objects
 
+  // get object length
+  const id = dbData.length + 1
+  
   // if JSON array of objects is sent
   if (Array.isArray(data)) {
     console.log("got an array")
     
     data.forEach(elem => { // add each object to the json file
       // make a check for the proper keys in object otherwise do not push
-      checkObject(elem);
-      dbData.push(elem);
+      if (checkObject(elem)) {
+        elem.id = id;
+        dbData.push(elem);
+        index++;
+      } 
     })
     
     // write to file
@@ -67,17 +65,20 @@ app.post("/api/notes", (req, res) => {
 
     res.json(data) // return data sent to confirm
     return
-  } 
+  } else {
+    // then only single object was sent
+    if (checkObject(data)) {
+      data.id = id;
+      dbData.push(data);
+      
+      // write to file
+      fs.writeFile(path.join(databaseDir, "db.json"), JSON.stringify(dbData), (err) => {
+        if(err) console.log("can't write to file")
+        console.log("file written to");
+      });
+    } 
+  }
   
-  dbData.push(data);
-  
-  fs.writeFile(path.join(databaseDir, "db.json"), JSON.stringify(dbData), (err) => {
-    if(err) console.log("can't write to file")
-    console.log("file written to");
-  })
-
-  //console.log(typeof data); // -> object
-  console.log(data);
   res.json(data);
 })
 
@@ -88,9 +89,10 @@ app.delete("/api/notes/:id", (req, res) => {
   res.send(id);
 })
 
-// app.get("/assets/css/styles.css", (req, res) => {
-//   res.sendFile(path.join(publicDir, "assets", "css", "styles.css"));
-// })
+// get any other route and bring them to index.html
+app.get("*", (req,res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+})
 
 app.listen(PORT, () => {
   console.log(`Server Listening on Port ${PORT}`);
@@ -99,15 +101,14 @@ app.listen(PORT, () => {
 
 // need to check that obj contains these properties: id, title, text
 function checkObject(obj) {
-  let idCheck = "id" in obj;
   let titleCheck = "title" in obj;
   let textCheck = "text" in obj;
 
-  if (Object.keys(obj).length !== 3) {
+  if (Object.keys(obj).length !== 2) {
     return false;
   }
 
-  if (idCheck && titleCheck && textCheck) {
+  if (titleCheck && textCheck) {
     return true;
   } else {
     return false;
