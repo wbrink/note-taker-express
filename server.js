@@ -60,7 +60,7 @@ app.post("/api/notes", (req, res) => {
     // write to file
     fs.writeFile(path.join(databaseDir, "db.json"), JSON.stringify(dbData), (err) => {
       if(err) console.log("can't write to file")
-      console.log("file written to");
+      //console.log("file written to");
     })
 
     res.json(data) // return data sent to confirm
@@ -74,7 +74,7 @@ app.post("/api/notes", (req, res) => {
       // write to file
       fs.writeFile(path.join(databaseDir, "db.json"), JSON.stringify(dbData), (err) => {
         if(err) console.log("can't write to file")
-        console.log("file written to");
+        //console.log("file written to");
       });
     } 
   }
@@ -86,7 +86,18 @@ app.post("/api/notes", (req, res) => {
 app.delete("/api/notes/:id", (req, res) => {
   let id = req.params.id; // type -> string
   
-  res.send(id);
+  let dbData = fs.readFileSync(path.join(databaseDir, "db.json"), "utf8");
+  dbData = JSON.parse(dbData);
+  const note = dbData.filter(note => note.id == parseInt(id))[0]; // gives us back an array we want the first index
+  const index = dbData.indexOf(note);
+  
+  // indexOf returns -1 if not part of array
+  if (index > -1) {
+    dbData.splice(index, 1);
+    fs.writeFileSync(path.join(databaseDir, "db.json"), JSON.stringify(dbData));
+  }
+
+  res.json(note);
 })
 
 // get any other route and bring them to index.html
