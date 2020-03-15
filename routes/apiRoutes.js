@@ -29,8 +29,13 @@ module.exports = function(app) {
     let fileData = fs.readFileSync(path.join(databaseDir, "db.json"), "utf8");
     let dbData = JSON.parse(fileData); // array of objects
 
-    // get object length
-    const id = dbData.length + 1
+    // get object length (get last objects id which is the largest up to that point. then add 1)
+    let id;
+    if (dbData.length === 0) {
+      id = 1; 
+    } else {
+      id = parseInt(dbData[dbData.length - 1].id) + 1; 
+    }
     
     // if JSON array of objects is sent
     if (Array.isArray(data)) {
