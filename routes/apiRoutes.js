@@ -36,18 +36,21 @@ module.exports = function(app) {
     } else {
       id = parseInt(dbData[dbData.length - 1].id) + 1; 
     }
-    
+
     // if JSON array of objects is sent
     if (Array.isArray(data)) {
-      console.log("got an array")
+      //console.log("got an array")
+
+      // check that every object is sent in correct format
+      if (!data.every(checkObject)) {
+        res.json({error: "obj only contain text and title property"});
+        return;
+      }
       
       data.forEach(elem => { // add each object to the json file
-        // make a check for the proper keys in object otherwise do not push
-        if (checkObject(elem)) {
-          elem.id = id;
-          dbData.push(elem);
-          index++;
-        } 
+        elem.id = id;
+        dbData.push(elem);
+        id++;
       })
       
       // write to file
@@ -69,10 +72,13 @@ module.exports = function(app) {
           if(err) console.log("can't write to file")
           //console.log("file written to");
         });
-      } 
+        res.json(data);
+      } else {
+        res.json({error: "Can't post to database"});
+      }
     }
     
-    res.json(data);
+    return
   })
 
 
@@ -91,9 +97,12 @@ module.exports = function(app) {
     if (index > -1) {
       dbData.splice(index, 1);
       fs.writeFileSync(path.join(databaseDir, "db.json"), JSON.stringify(dbData));
+      res.json(note);
+    } else {
+      res.json({error: `No note with id ${id} found`});
     }
 
-    res.json(note);
+    return
   })
 
  
